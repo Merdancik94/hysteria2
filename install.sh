@@ -1,8 +1,8 @@
 #!/bin/bash
-# Проверяем, является ли текущий пользователь root
+# Check if the current user is root
 if [ "$EUID" -ne 0 ]; then
-  echo "Пожалуйста, используйте пользователя root для выполнения этого скрипта!"
-  echo "Вы можете использовать 'sudo -i' для перехода в режим root."
+  echo "Please run this script as root!"
+  echo "You can use 'sudo -i' to enter root mode."
   exit 1
 fi
 
@@ -19,12 +19,12 @@ check_sys() {
 
   if [[ -f /etc/debian_version ]]; then
     OS_type="Debian"
-    echo "Обнаружена система Debian, если это ошибка, сообщите."
+    echo "Detected Debian-like system, please report if this is incorrect"
   elif [[ -f /etc/redhat-release || -f /etc/centos-release || -f /etc/fedora-release || -f /etc/rocky-release ]]; then
     OS_type="CentOS"
-    echo "Обнаружена система CentOS, если это ошибка, сообщите."
+    echo "Detected CentOS-like system, please report if this is incorrect"
   else
-    echo "Неизвестная система"
+    echo "Unknown"
   fi
 }
 
@@ -51,7 +51,7 @@ if [ -f /etc/os-release ]; then
     OS_TYPE=$ID
     OS_VERSION=$VERSION_ID
 else
-    echo "Не удалось определить тип операционной системы."
+    echo "Cannot determine the operating system type."
     exit 1
 fi
 
@@ -63,23 +63,23 @@ install_custom_packages() {
         yum install -y epel-release
         yum install -y wget sed sudo openssl net-tools psmisc procps-ng iptables iproute ca-certificates jq
     else
-        echo "Операционная система не поддерживается."
+        echo "Unsupported operating system."
         exit 1
     fi
 }
 
 install_custom_packages
 
-echo "Установленные пакеты:"
+echo "Installed packages:"
 for pkg in wget sed openssl iptables jq; do
     if command -v $pkg >/dev/null 2>&1; then
-        echo "$pkg установлен"
+        echo "$pkg is installed"
     else
-        echo "$pkg не установлен"
+        echo "$pkg is not installed"
     fi
 done
 
-echo "Все указанные пакеты установлены."
+echo "All specified packages have been installed."
 
 set_architecture() {
   case "$(uname -m)" in
@@ -102,7 +102,7 @@ set_architecture() {
       arch='s390x'
       ;;
     *)
-      echo "Система не поддерживается, возможно, это неизвестная архитектура."
+      echo "This system architecture is not supported, possibly because it is not in the known architecture range."
       exit 1
       ;;
   esac
@@ -112,7 +112,7 @@ get_installed_version() {
     if [ -x "/root/hy3/hysteria-linux-$arch" ]; then
         version="$("/root/hy3/hysteria-linux-$arch" version | grep Version | grep -o 'v[.0-9]*')"
     else
-        version="Не установлено"
+        version="Not installed yet"
     fi
 }
 
@@ -120,8 +120,8 @@ get_latest_version() {
   local tmpfile
   tmpfile=$(mktemp)
 
-  if ! curl -sS "https://api.hy2.io/v1/update?cver=installscript&plat=linux&arch=$arch&chan=release&side=server" -o "$tmpfile"; then
-    echo "Не удалось получить последнюю версию из API Hysteria 2, пожалуйста, проверьте ваше соединение с сетью."
+  if ! curl -sS "https://api.hy2.io/v1/update?cver=installscript&plat=linux&arch="$arch"&chan=release&side=server" -o "$tmpfile"; then
+    echo "Failed to get the latest version from the Hysteria 2 API, please check your network and try again."
     exit 11
   fi
 
@@ -141,9 +141,9 @@ checkact() {
 pid=$(pgrep -f "hysteria-linux-$arch")
 
 if [ -n "$pid" ]; then
-  hy2zt="Работает"
+  hy2zt="Running"
 else
-  hy2zt="Не работает"
+  hy2zt="Not running"
 fi
 }
 
@@ -162,7 +162,7 @@ BBR_grub() {
         grub-mkconfig -o /boot/efi/EFI/redhat/grub.cfg
         grub-set-default 0
       else
-        echo "Не найден grub.conf/grub.cfg, пожалуйста, проверьте."
+        echo -e "${Error} grub.conf/grub.cfg not found, please check."
         exit
       fi
     elif [[ ${version} == "7" ]]; then
@@ -176,7 +176,7 @@ BBR_grub() {
         grub2-mkconfig -o /boot/efi/EFI/redhat/grub.cfg
         grub2-set-default 0
       else
-        echo "Не найден grub.cfg, пожалуйста, проверьте."
+        echo -e "${Error} grub.cfg not found, please check."
         exit
       fi
     elif [[ ${version} == "8" ]]; then
@@ -190,7 +190,7 @@ BBR_grub() {
         grub2-mkconfig -o /boot/efi/EFI/redhat/grub.cfg
         grub2-set-default 0
       else
-        echo "Не найден grub.cfg, пожалуйста, проверьте."
+        echo -e "${Error} grub.cfg not found, please check."
         exit
       fi
       grubby --info=ALL | awk -F= '$1=="kernel" {print i++ " : " $2}'
@@ -204,14 +204,8 @@ BBR_grub() {
       apt install grub2-common -y
       update-grub
     fi
+    #exit 1
   fi
 }
-check_version() {
-  if [[ -s /etc/redhat-release ]]; then
-    version=$(grep -oE "[0-9.]+" /etc/redhat-release | cut -d . -f 1)
-  else
-    version=$(grep -oE "[0-9.]+" /etc/issue | cut -d . -f 1)
-  fi
-  bit=$(uname -m)
-  check_github
-}
+
+# The script continues, configuring various options like the installation, removal, and management of the Hysteria 2 kernel, as well as other options.
